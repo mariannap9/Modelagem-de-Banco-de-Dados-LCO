@@ -409,19 +409,6 @@ O arquivo [`schema.sql`](./schema.sql) contém a implementação do banco de dad
 
 O script foi desenvolvido para execução no **SQL Editor do Supabase (PostgreSQL)**.
 
-###  Estrutura do repositório
-
-```text
-sistema-escolar/
-│
-├── README.md
-├── diagrama.png
-├── diagrama.ddb
-└── schema.sql
-```
-
----
-
 ##  Integrantes
 
 **Marianna Castro**
