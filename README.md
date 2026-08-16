@@ -1,125 +1,438 @@
-Repositório com a modelagem de dados de três domínios diferentes, implementados no Supabase (PostgreSQL). Este README serve como ponto de partida: explica a estrutura do repositório, as convenções adotadas e onde encontrar cada informação.
+# Trabalho de Banco de Dados — Sistema Escolar
 
-* Sumário
-* Visão geral
-* Estrutura do repositório
-* Domínios modelados
-* Convenções e regras do projeto
-* Regras de negócio (resumo por domínio)
-* Como executar
-* Diagramas
-* Glossário rápido
-* Como contribuir / alterar o modelo
-* Visão geral
+**Disciplina:** Banco de Dados — 4º período
+**Domínio:** Sistema Escolar — matrícula de alunos em disciplinas oferecidas por professores
+**Alunos:** Marianna Castro, Vanessa Toledo
 
-Este projeto contém a modelagem completa (entidades, atributos, chaves, relacionamentos, regras de negócio e scripts de criação) de três sistemas independentes entre si:
+---
 
-Domínio	Descrição	Status
-Grupo A	Sistema Escolar — matrícula de alunos em disciplinas (Modelado e implementado)
-Grupo B	Comércio Eletrônico — pedidos e itens de pedido	(Modelado e implementado)
-Grupo C	Clínica Veterinária Expandida — vacinas, aplicações e prescrições	(Modelado e implementado)
+##  Sumário
 
-Cada domínio é um banco de dados independente, ou seja, não compartilham tabelas nem chaves estrangeiras entre si.
+* [1. Contexto e decisões da entrevista de requisitos](#1-contexto-e-decisões-da-entrevista-de-requisitos)
+* [2. Entidades e atributos](#2-entidades-e-atributos)
+* [3. Chaves](#3-chaves)
+* [4. Relacionamentos e cardinalidades](#4-relacionamentos-e-cardinalidades)
+* [5. Regras de negócio](#5-regras-de-negócio)
+* [6. Dicionário de dados](#6-dicionário-de-dados)
+* [7. Diagrama](#7-diagrama)
+* [8. Implementação](#8-implementação)
 
-Estrutura do repositório
-.
-├── README.md                          # este arquivo — visão geral e regras
-├── documentacao-modelagem-bd.md       # documentação técnica completa (entidades,
-│                                       # atributos, chaves, cardinalidades, dicionário
-│                                       # de dados e diagramas de cada domínio)
-├── grupo-a-sistema-escolar.sql        # script de criação das tabelas do Grupo A
-├── grupo-b-ecommerce.sql              # script de criação das tabelas do Grupo B
-└── grupo-c-clinica-veterinaria.sql    # script de criação das tabelas do Grupo C
+---
 
-Regra de organização: toda alteração na estrutura de um domínio (nova tabela, nova coluna, nova regra de negócio) deve ser refletida em dois lugares: no arquivo .sql correspondente (a implementação) e na seção correspondente de documentacao-modelagem-bd.md (a documentação). Um sem o outro é considerado uma entrega incompleta.
+## 1. Contexto e decisões da entrevista de requisitos
 
-Domínios modelados
-Grupo A — Sistema Escolar
+Durante a entrevista com o professor, foram levantadas as seguintes regras que orientaram a construção do modelo de dados:
 
-Entidades: Aluno, Professor, Disciplina, Matricula. Ideia central: alunos se matriculam em disciplinas oferecidas por professores; Matricula é a tabela que resolve o relacionamento N:N entre Aluno e Disciplina.
+| Pergunta                       | Resposta                                                                | Impacto no modelo                                                 |
+| ------------------------------ | ----------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Quantos cursos são oferecidos? | 10, com nome único                                                      | Entidade `Curso`, atributo `nome` com restrição `UNIQUE`          |
+| Quantos alunos por turma?      | Mínimo 10, máximo 25                                                    | Entidade `Turma`, com `CHECK` de capacidade                       |
+| Forma de ingresso              | ENEM, Vestibular Próprio (2x/ano), Transferência, Portador de Diploma   | Entidade `Forma_Ingresso`                                         |
+| Matrícula                      | Chave estrangeira obrigatória / relação total                           | `Matricula` sempre referencia um `Aluno` e uma `Turma` existentes |
+| Identificação do aluno         | CPF                                                                     | Atributo `cpf` do `Aluno`, único e obrigatório                    |
+| Instrução básica               | Relação 1:1 com forma de ingresso; apresentar conclusão do Ensino Médio | Entidade `Instrucao_Basica`, com relação 1:1 com `Aluno`          |
 
-Grupo B — Comércio Eletrônico
+---
 
-Entidades: Cliente, Produto, Pedido, ItemPedido. Ideia central: um cliente faz pedidos; cada pedido é composto por vários itens, e cada item aponta para um produto — ItemPedido resolve o relacionamento N:N entre Pedido e Produto.
+## 2. Entidades e atributos
 
-Grupo C — Clínica Veterinária Expandida
+###  Curso
 
-Entidades-base: Tutor, Veterinario, Animal, Consulta. Entidades da expansão: Vacina, AplicacaoVacina, Medicamento, Prescricao. Ideia central: animais pertencem a tutores e passam por consultas com veterinários; AplicacaoVacina resolve o N:N entre Animal e Vacina, e Prescricao resolve o N:N entre Consulta e Medicamento.
+| Campo                 | Descrição                    |
+| --------------------- | ---------------------------- |
+| `id_curso`            | Chave primária               |
+| `nome`                | Nome único do curso          |
+| `carga_horaria_total` | Carga horária total do curso |
 
-Descrição completa de cada entidade (atributos, tipos, chaves, cardinalidades e dicionário de dados) está em documentacao-modelagem-bd.md.
+###  Forma_Ingresso
 
-Convenções e regras do projeto
+| Campo               | Descrição        |
+| ------------------- | ---------------- |
+| `id_forma_ingresso` | Chave primária   |
+| `tipo`              | Tipo de ingresso |
 
-Estas são as regras que todo o modelo segue, para manter consistência entre os três domínios:
+Tipos previstos:
 
-Chave primária: toda tabela usa uuid gerado por gen_random_uuid() como chave primária, nomeada id_<entidade> (ex.: id_aluno, id_produto).
-Nomenclatura: nomes de tabelas e colunas em português, minúsculas, no formato snake_case (palavras separadas por _). Nunca usar espaços, acentos ou maiúsculas em nomes de tabela/coluna.
-Chave estrangeira: sempre nomeada como id_<entidade_referenciada> (ex.: disciplina.id_professor aponta para professor.id_professor).
-Exclusão em cascata (on delete cascade vs. on delete restrict):
-cascade quando o registro "filho" não tem sentido sem o "pai" (ex.: excluir um Pedido remove seus ItemPedido).
-restrict quando a exclusão deve ser bloqueada até tratamento manual (ex.: não se exclui um Produto já vendido).
-Validações simples → CHECK/UNIQUE; validações que dependem de outras linhas → TRIGGER. Exemplo: nota entre 0 e 10 é CHECK; verificar vagas disponíveis contando matrículas já existentes é TRIGGER.
-Enumerações de status (ex.: status de pedido, status de matrícula) são implementadas como text + CHECK, e não como ENUM nativo do PostgreSQL — isso facilita adicionar ou remover valores permitidos no futuro sem precisar de ALTER TYPE.
-Segurança (RLS): toda tabela tem Row Level Security habilitado. Nenhuma tabela fica aberta por padrão — o acesso via API só é liberado pelas políticas (policy) explicitamente definidas no script.
-Datas de auditoria: colunas como created_at/data_cadastro usam timestamptz (data e hora com fuso horário) com valor padrão now(), preenchidas automaticamente pelo banco.
-Regras de negócio — resumo por domínio
+* ENEM
+* Vestibular Próprio
+* Transferência
+* Portador de Diploma
 
-Cada domínio tem cinco regras de negócio detalhadas na documentação completa. Resumo:
+### Aluno
 
-Grupo A — Sistema Escolar
+| Campo             | Descrição               |
+| ----------------- | ----------------------- |
+| `id_aluno`        | Chave primária          |
+| `nome`            | Nome completo           |
+| `cpf`             | CPF único e obrigatório |
+| `data_nascimento` | Data de nascimento      |
+| `email`           | E-mail de contato       |
+| `id_curso`        | FK para `Curso`         |
 
-Aluno não pode se matricular duas vezes na mesma disciplina.
-Matrícula só é aceita se houver vagas na disciplina.
-Nota final entre 0 e 10.
-Frequência entre 0% e 100%.
-Status da matrícula restrito a valores predefinidos.
+###  Instrucao_Basica
 
-Grupo B — Comércio Eletrônico
+| Campo                | Descrição                                               |
+| -------------------- | ------------------------------------------------------- |
+| `id_instrucao`       | Chave primária                                          |
+| `id_aluno`           | FK para `Aluno`, com `UNIQUE` para garantir relação 1:1 |
+| `instituicao_origem` | Instituição de ensino de origem                         |
+| `ano_conclusao_em`   | Ano de conclusão do Ensino Médio                        |
+| `id_forma_ingresso`  | FK para `Forma_Ingresso`                                |
 
-Todo pedido deve ter ao menos um item.
-Quantidade do item não pode exceder o estoque disponível.
-Valor total do pedido é sempre a soma dos subtotais dos itens.
-Pedido cancelado devolve a quantidade ao estoque.
-Preço unitário do item reflete o preço no momento da compra (histórico).
+###  Professor
 
-Grupo C — Clínica Veterinária Expandida
+| Campo          | Descrição              |
+| -------------- | ---------------------- |
+| `id_professor` | Chave primária         |
+| `nome`         | Nome completo          |
+| `cpf`          | CPF único              |
+| `titulacao`    | Titulação do professor |
 
-Dose aplicada não pode exceder o total de doses previstas na vacina.
-Nova dose só é aplicada após o intervalo mínimo definido.
-Não é permitido duplicar o registro da mesma dose para o mesmo animal.
-Toda prescrição deve estar vinculada a uma consulta existente.
-Só é possível prescrever medicamentos marcados como ativos no catálogo.
+###  Disciplina
 
-Detalhamento de como cada regra é aplicada (via CHECK, UNIQUE ou TRIGGER) está na seção correspondente de documentacao-modelagem-bd.md.
+| Campo           | Descrição                   |
+| --------------- | --------------------------- |
+| `id_disciplina` | Chave primária              |
+| `nome`          | Nome da disciplina          |
+| `carga_horaria` | Carga horária da disciplina |
+| `id_curso`      | FK para `Curso`             |
 
-Como executar
-Crie (ou acesse) um projeto no Supabase.
-Abra SQL Editor no menu lateral do projeto.
-Cole o conteúdo do arquivo .sql do domínio desejado e clique em Run.
-Repita para os demais domínios — a ordem de execução não importa, pois são independentes.
+###  Turma
 
-Passo a passo detalhado, incluindo observações sobre RLS, está na seção 8 de documentacao-modelagem-bd.md.
+A entidade `Turma` representa a oferta de uma disciplina por um professor em determinado semestre.
 
-Diagramas
+Ela também é utilizada para controlar a quantidade de alunos matriculados.
 
-Os diagramas Entidade-Relacionamento (DER) de cada domínio estão descritos em notação Mermaid dentro de documentacao-modelagem-bd.md (renderizam automaticamente no GitHub ao visualizar o arquivo). Para gerar o mesmo diagrama de forma visual no drawDB, siga o passo a passo da seção 7 do mesmo documento — a ferramenta importa o .sql diretamente e monta o diagrama sozinha.
+| Campo               | Descrição                                   |
+| ------------------- | ------------------------------------------- |
+| `id_turma`          | Chave primária                              |
+| `id_disciplina`     | FK para `Disciplina`                        |
+| `id_professor`      | FK para `Professor`                         |
+| `semestre`          | Semestre da oferta, por exemplo `2026/2`    |
+| `capacidade_maxima` | Capacidade da turma, limitada entre 10 e 25 |
 
-Glossário rápido
-Termo	Significado
-PK	Chave primária — identifica cada linha de forma única.
-FK	Chave estrangeira — vincula uma tabela a outra.
-N:N	Relacionamento muitos-para-muitos, resolvido por uma tabela associativa.
-RLS	Segurança em nível de linha — controla quem pode ler/alterar cada linha.
-Trigger	Função executada automaticamente pelo banco antes/depois de uma alteração.
-DER	Diagrama Entidade-Relacionamento.
+###  Matricula
 
-Glossário completo, com mais termos e exemplos, na seção 2 de documentacao-modelagem-bd.md.
+A entidade `Matricula` funciona como entidade associativa entre `Aluno` e `Turma`, resolvendo o relacionamento **N:N**.
 
-Como contribuir / alterar o modelo
+| Campo            | Descrição                   |
+| ---------------- | --------------------------- |
+| `id_matricula`   | Chave primária              |
+| `id_aluno`       | FK obrigatória para `Aluno` |
+| `id_turma`       | FK obrigatória para `Turma` |
+| `data_matricula` | Data da matrícula           |
+| `status`         | Situação da matrícula       |
 
-Ao propor qualquer mudança na modelagem:
+Status possíveis:
 
-Atualize o script .sql do domínio afetado.
-Atualize a seção correspondente em documentacao-modelagem-bd.md (entidades, dicionário de dados e, se necessário, o diagrama Mermaid).
-Se a mudança adicionar ou alterar uma regra de negócio, atualize também a lista de "cinco regras de negócio" do domínio e o resumo neste README.
-Descreva no commit/pull request o quê mudou e por quê — isso mantém o histórico do repositório como uma fonte confiável de decisões de projeto, não só de código.
+* `ATIVA`
+* `CANCELADA`
+* `CONCLUIDA`
+
+---
+
+## 3. Chaves
+
+###  Chaves Primárias (PK)
+
+Cada entidade possui uma chave primária formada por um identificador `id_*` autoincrementável:
+
+* `Curso.id_curso`
+* `Forma_Ingresso.id_forma_ingresso`
+* `Aluno.id_aluno`
+* `Instrucao_Basica.id_instrucao`
+* `Professor.id_professor`
+* `Disciplina.id_disciplina`
+* `Turma.id_turma`
+* `Matricula.id_matricula`
+
+###  Chaves Estrangeiras (FK)
+
+As seguintes chaves estrangeiras estabelecem os relacionamentos entre as entidades:
+
+```text
+Aluno.id_curso
+    → Curso.id_curso
+
+Instrucao_Basica.id_aluno
+    → Aluno.id_aluno
+
+Instrucao_Basica.id_forma_ingresso
+    → Forma_Ingresso.id_forma_ingresso
+
+Disciplina.id_curso
+    → Curso.id_curso
+
+Turma.id_disciplina
+    → Disciplina.id_disciplina
+
+Turma.id_professor
+    → Professor.id_professor
+
+Matricula.id_aluno
+    → Aluno.id_aluno
+
+Matricula.id_turma
+    → Turma.id_turma
+```
+
+###  Chaves candidatas / alternativas
+
+Os seguintes atributos possuem restrição `UNIQUE`:
+
+* `Aluno.cpf`
+* `Professor.cpf`
+* `Curso.nome`
+* `Forma_Ingresso.tipo`
+
+---
+
+## 4. Relacionamentos e cardinalidades
+
+| Relacionamento                        | Cardinalidade | Leitura                                                                             |
+| ------------------------------------- | ------------: | ----------------------------------------------------------------------------------- |
+| `Curso` — `Aluno`                     |       **1:N** | Um curso possui vários alunos; um aluno pertence a um único curso                   |
+| `Curso` — `Disciplina`                |       **1:N** | Um curso possui várias disciplinas                                                  |
+| `Aluno` — `Instrucao_Basica`          |       **1:1** | Todo aluno possui exatamente um registro de instrução básica                        |
+| `Instrucao_Basica` — `Forma_Ingresso` |       **N:1** | Vários alunos podem utilizar a mesma forma de ingresso                              |
+| `Professor` — `Turma`                 |       **1:N** | Um professor pode lecionar várias turmas                                            |
+| `Disciplina` — `Turma`                |       **1:N** | Uma disciplina pode possuir várias turmas                                           |
+| `Aluno` — `Turma`                     |       **N:M** | Um aluno pode se matricular em várias turmas e uma turma pode possuir vários alunos |
+
+### Relacionamento N:M
+
+O relacionamento entre `Aluno` e `Turma` é resolvido pela entidade associativa `Matricula`:
+
+```text
+Aluno
+  1
+  │
+  │
+  N
+Matricula
+  N
+  │
+  │
+  1
+Turma
+```
+
+Dessa forma:
+
+> Um aluno pode possuir várias matrículas e uma turma pode possuir vários alunos matriculados.
+
+---
+
+## 5. Regras de negócio
+
+1. Todo aluno deve possuir um **CPF único e obrigatório**.
+2. Toda matrícula deve estar obrigatoriamente vinculada a um **aluno e a uma turma existentes**.
+3. Uma turma deve possuir capacidade entre **10 e 25 alunos**.
+4. Todo aluno deve possuir um registro de `Instrucao_Basica`, contendo o **ano de conclusão do Ensino Médio** e a **forma de ingresso**.
+5. O nome de cada curso deve ser único.
+6. O tipo de cada forma de ingresso deve ser único.
+7. O CPF de cada professor deve ser único.
+
+---
+
+# 6. Dicionário de dados
+
+O dicionário de dados apresenta as tabelas, campos, tipos de dados, restrições e suas respectivas descrições.
+
+## 6.1 Tabela `curso`
+
+| Campo                 | Tipo           | Restrição            | Descrição                    |
+| --------------------- | -------------- | -------------------- | ---------------------------- |
+| `id_curso`            | `INTEGER`      | `PK`                 | Identificador do curso       |
+| `nome`                | `VARCHAR(100)` | `UNIQUE`, `NOT NULL` | Nome do curso                |
+| `carga_horaria_total` | `INTEGER`      | —                    | Carga horária total do curso |
+
+---
+
+## 6.2 Tabela `forma_ingresso`
+
+| Campo               | Tipo          | Restrição            | Descrição                          |
+| ------------------- | ------------- | -------------------- | ---------------------------------- |
+| `id_forma_ingresso` | `INTEGER`     | `PK`                 | Identificador da forma de ingresso |
+| `tipo`              | `VARCHAR(50)` | `UNIQUE`, `NOT NULL` | Tipo de ingresso                   |
+
+**Valores previstos:**
+
+```text
+ENEM
+VESTIBULAR PROPRIO
+TRANSFERENCIA
+PORTADOR DE DIPLOMA
+```
+
+---
+
+## 6.3 Tabela `aluno`
+
+| Campo             | Tipo           | Restrição            | Descrição                      |
+| ----------------- | -------------- | -------------------- | ------------------------------ |
+| `id_aluno`        | `INTEGER`      | `PK`                 | Identificador do aluno         |
+| `nome`            | `VARCHAR(150)` | `NOT NULL`           | Nome completo                  |
+| `cpf`             | `CHAR(11)`     | `UNIQUE`, `NOT NULL` | CPF do aluno                   |
+| `data_nascimento` | `DATE`         | —                    | Data de nascimento             |
+| `email`           | `VARCHAR(150)` | —                    | E-mail de contato              |
+| `id_curso`        | `INTEGER`      | `FK`, `NOT NULL`     | Curso ao qual o aluno pertence |
+
+**FK:** `id_curso` → `curso.id_curso`
+
+---
+
+## 6.4 Tabela `instrucao_basica`
+
+| Campo                | Tipo           | Restrição                  | Descrição                        |
+| -------------------- | -------------- | -------------------------- | -------------------------------- |
+| `id_instrucao`       | `INTEGER`      | `PK`                       | Identificador                    |
+| `id_aluno`           | `INTEGER`      | `FK`, `UNIQUE`, `NOT NULL` | Aluno relacionado; garante 1:1   |
+| `instituicao_origem` | `VARCHAR(150)` | —                          | Escola de origem                 |
+| `ano_conclusao_em`   | `INTEGER`      | `NOT NULL`                 | Ano de conclusão do Ensino Médio |
+| `id_forma_ingresso`  | `INTEGER`      | `FK`, `NOT NULL`           | Forma de ingresso                |
+
+**FKs:**
+
+```text
+id_aluno
+    → aluno.id_aluno
+
+id_forma_ingresso
+    → forma_ingresso.id_forma_ingresso
+```
+
+---
+
+## 6.5 Tabela `professor`
+
+| Campo          | Tipo           | Restrição            | Descrição                  |
+| -------------- | -------------- | -------------------- | -------------------------- |
+| `id_professor` | `INTEGER`      | `PK`                 | Identificador do professor |
+| `nome`         | `VARCHAR(150)` | `NOT NULL`           | Nome completo              |
+| `cpf`          | `CHAR(11)`     | `UNIQUE`, `NOT NULL` | CPF do professor           |
+| `titulacao`    | `VARCHAR(50)`  | —                    | Ex.: Mestre, Doutor        |
+
+---
+
+## 6.6 Tabela `disciplina`
+
+| Campo           | Tipo           | Restrição        | Descrição                   |
+| --------------- | -------------- | ---------------- | --------------------------- |
+| `id_disciplina` | `INTEGER`      | `PK`             | Identificador da disciplina |
+| `nome`          | `VARCHAR(100)` | `NOT NULL`       | Nome da disciplina          |
+| `carga_horaria` | `INTEGER`      | `NOT NULL`       | Carga horária em horas      |
+| `id_curso`      | `INTEGER`      | `FK`, `NOT NULL` | Curso ao qual pertence      |
+
+**FK:** `id_curso` → `curso.id_curso`
+
+---
+
+## 6.7 Tabela `turma`
+
+| Campo               | Tipo          | Restrição        | Descrição                         |
+| ------------------- | ------------- | ---------------- | --------------------------------- |
+| `id_turma`          | `INTEGER`     | `PK`             | Identificador da turma            |
+| `id_disciplina`     | `INTEGER`     | `FK`, `NOT NULL` | Disciplina ofertada               |
+| `id_professor`      | `INTEGER`     | `FK`, `NOT NULL` | Professor responsável             |
+| `semestre`          | `VARCHAR(10)` | `NOT NULL`       | Semestre da oferta, ex.: `2026/2` |
+| `capacidade_maxima` | `INTEGER`     | `CHECK (10–25)`  | Limite de alunos na turma         |
+
+**FKs:**
+
+```text
+id_disciplina
+    → disciplina.id_disciplina
+
+id_professor
+    → professor.id_professor
+```
+
+---
+
+## 6.8 Tabela `matricula`
+
+| Campo            | Tipo          | Restrição        | Descrição                  |
+| ---------------- | ------------- | ---------------- | -------------------------- |
+| `id_matricula`   | `INTEGER`     | `PK`             | Identificador da matrícula |
+| `id_aluno`       | `INTEGER`     | `FK`, `NOT NULL` | Aluno matriculado          |
+| `id_turma`       | `INTEGER`     | `FK`, `NOT NULL` | Turma da matrícula         |
+| `data_matricula` | `DATE`        | `NOT NULL`       | Data da matrícula          |
+| `status`         | `VARCHAR(20)` | `CHECK`          | Situação da matrícula      |
+
+**Valores permitidos para `status`:**
+
+```text
+ATIVA
+CANCELADA
+CONCLUIDA
+```
+
+**FKs:**
+
+```text
+id_aluno
+    → aluno.id_aluno
+
+id_turma
+    → turma.id_turma
+```
+
+---
+
+# 7. Diagrama Entidade-Relacionamento
+
+O diagrama entidade-relacionamento foi desenvolvido utilizando o **DrawDB**.
+
+### Modelo do banco de dados
+
+![Diagrama do Sistema Escolar](./diagrama.png)
+
+> **Arquivo editável:** `diagrama.ddb`
+> **Imagem:** `diagrama.png`
+
+O arquivo `.ddb` contém o modelo desenvolvido no DrawDB, enquanto a imagem apresenta uma versão visual do diagrama para consulta rápida.
+
+---
+
+# 8.  Implementação
+
+O arquivo [`schema.sql`](./schema.sql) contém a implementação do banco de dados, incluindo:
+
+* Criação das tabelas;
+* Chaves primárias (`PK`);
+* Chaves estrangeiras (`FK`);
+* Restrições `UNIQUE`;
+* Restrições `NOT NULL`;
+* Restrições `CHECK`;
+* Relacionamentos entre as entidades.
+
+O script foi desenvolvido para execução no **SQL Editor do Supabase (PostgreSQL)**.
+
+###  Estrutura do repositório
+
+```text
+sistema-escolar/
+│
+├── README.md
+├── diagrama.png
+├── diagrama.ddb
+└── schema.sql
+```
+
+---
+
+##  Integrantes
+
+**Marianna Castro**
+**Vanessa Toledo**
+
+---
+
+###  Tecnologias e ferramentas
+
+* PostgreSQL
+* Supabase
+* DrawDB
+* SQL
+* GitHub
