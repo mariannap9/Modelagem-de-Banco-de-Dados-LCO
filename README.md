@@ -432,5 +432,3 @@ sistema-escolar/
 ###  Onde encontrar?
 * drawDB: https://www.drawdb.app/share/Yxsw7V015e-5ZGQk5YphQUmX
 * Supabase: https://supabase.com/dashboard/project/ucrwerkcelhdcocstcia/settings/general  **OR** PROJECT ID: ucrwerkcelhdcocstcia
-* SQL
-* GitHub
