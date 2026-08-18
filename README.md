@@ -1,7 +1,10 @@
 # Trabalho de Banco de Dados — Sistema Escolar
 
 **Disciplina:** Banco de Dados, 4º período
+
 **Domínio:** Sistema Escolar, matrícula de alunos em disciplinas oferecidas por professores
+
+
 **Alunos:** Marianna Castro, Vanessa Toledo
 
 ---
