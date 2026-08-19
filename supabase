@@ -72,9 +72,7 @@ CREATE TABLE matricula (
     UNIQUE (id_aluno, id_turma) -- impede matricular o mesmo aluno 2x na mesma turma
 );
 
--- =========================================================
--- Dados de exemplo (opcional, ajuda a testar as consultas)
--- =========================================================
+
 INSERT INTO curso (nome, carga_horaria_total) VALUES
     ('Ciência da Computação', 3200),
     ('Engenharia de Software', 3200);
