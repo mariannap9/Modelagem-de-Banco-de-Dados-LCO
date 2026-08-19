@@ -5,7 +5,7 @@
 **Domínio:** Sistema Escolar, matrícula de alunos em disciplinas oferecidas por professores
 
 
-**Alunos:** Marianna Castro, Vanessa Toledo
+**Alunos:** Marianna Castro, Vanessa Toledo, Layse Resende
 
 ---
 
